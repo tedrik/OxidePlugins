@@ -1,11 +1,10 @@
 PLUGIN.Title = "Contraband"
-PLUGIN.Version = "0.2.1"
+PLUGIN.Version = "0.2.2"
 PLUGIN.Description = "Removes all contraband from a player's inventory and hotbar."
 PLUGIN.Author = "Luke Spragg - Wulfspider"
 PLUGIN.Url = "http://forum.rustoxide.com/resources/130/"
 
 local localization;
-
 function PLUGIN:Init()
     -- Log that plugin is loading
     print(self.Title .. " v" .. self.Version .. " loading...")
@@ -98,7 +97,7 @@ function PLUGIN:ContrabandProcess(targetuser, action)
     return detected
 end
 
-function PLUGIN:ContrabandCommand(netuser, cmd, args)
+function PLUGIN:cmdContraband(netuser, cmd, args)
     -- Only allow two arguments
     if (#args ~= 2) then
         -- Check for localized strings
