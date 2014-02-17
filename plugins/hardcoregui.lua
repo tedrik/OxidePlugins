@@ -1,15 +1,18 @@
 PLUGIN.Title = "Hardcore GUI"
-PLUGIN.Version = "0.2.0"
+PLUGIN.Version = "0.2.1"
 PLUGIN.Description = "Forcefully hides the player stat bars, inventory, and hotbar slots."
 PLUGIN.Author = "Luke Spragg - Wulfspider"
 PLUGIN.Url = "http://forum.rustoxide.com/resources/140/"
 
--- Let the server owner know the plugin has loaded
-print(PLUGIN.Title .. " v" .. PLUGIN.Version .. " loaded")
-
 function PLUGIN:Init()
-    -- Continuously trigger the event to hide the GUI
-    timer.Repeat(1, 0, function() self:timerEvent() end)
+    -- Log that plugin is loading
+    print(self.Title .. " v" .. self.Version .. " loading...")
+
+    -- Continuously trigger event to hide the GUI
+    timer.Repeat(0.1, 0, function() self:TimerEvent() end)
+
+    -- Log tha plugin has loaded
+    print(self.Title .. " v" .. self.Version .. " loaded!")
 end
 
 function PLUGIN:GuiHide(netuser)
@@ -19,13 +22,12 @@ end
 
 function PLUGIN:OnSpawnPlayer(playerclient, usecamp, avatar)
     -- Trigger GUI hide function on player spawn
-    timer.Once(5, function() self:GuiHide(playerclient.netUser) end)
+    timer.Once(0.1, function() self:GuiHide(playerclient.netUser) end)
 end
 
-function PLUGIN:timerEvent(playerclient)
-    local netusers = rust.GetAllNetUsers()
-
+function PLUGIN:TimerEvent()
     -- Loop through all online players
+    local netusers = rust.GetAllNetUsers()
     for u, netuser in pairs(netusers) do
         if (rust.GetCharacter) then
             local char = rust.GetCharacter(netuser)
