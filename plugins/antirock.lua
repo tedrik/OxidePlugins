@@ -1,5 +1,5 @@
 PLUGIN.Title = "Anti-Rock"
-PLUGIN.Version = "0.1.0"
+PLUGIN.Version = "0.1.1"
 PLUGIN.ConfigVersion = "0.1.0"
 PLUGIN.Description = "Removes the starter rock from player's inventory/hotbar on connect."
 PLUGIN.Author = "Luke Spragg - Wulfspider"
@@ -58,7 +58,7 @@ function PLUGIN:RemoveRock(netuser)
     end
 
     -- Give player a starter rock if allowed
-    if ((self.Config.starterrock == true) and (rock == nil)) then
+    if ((betteritem == nil) and (rock == nil) and (self.Config.starterrock == true)) then
         local pref = rust.InventorySlotPreference(InventorySlotKind.Belt, false, InventorySlotKindFlags.Belt)
         inv:AddItemAmount(rockblock, 1, pref)
     end
