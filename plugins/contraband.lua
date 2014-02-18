@@ -1,5 +1,6 @@
 PLUGIN.Title = "Contraband"
-PLUGIN.Version = "0.2.2"
+PLUGIN.Version = "0.2.3"
+PLUGIN.ConfigVersion = "0.2.3"
 PLUGIN.Description = "Removes all contraband from a player's inventory and hotbar."
 PLUGIN.Author = "Luke Spragg - Wulfspider"
 PLUGIN.Url = "http://forum.rustoxide.com/resources/130/"
@@ -11,6 +12,9 @@ function PLUGIN:Init()
 
     -- Load configuration file
     self:LoadConfiguration()
+
+    -- Run update check
+    self:GetLatestVersion()
 
     -- Setup command permissions
     self:SetupPermissions()
@@ -24,7 +28,7 @@ function PLUGIN:Init()
         self:DefaultLocalization()
     end
 
-    -- Log tha plugin has loaded
+    -- Log that plugin has loaded
     print(self.Title .. " v" .. self.Version .. " loaded!")
 end
 
@@ -62,12 +66,12 @@ function PLUGIN:PermissionsCheck(netuser, action)
     return hasPermission
 end
 
+-- Preload the banned item list
 function PLUGIN:OnDatablocksLoaded()
-    -- Preload the datablocks
-    self.DataBlocks = {}
+    self.datablocks = {}
     for i=1, #self.Config.contraband do
-        local BlockName = self.Config.contraband[i]
-        self.DataBlocks[BlockName] = rust.GetDatablockByName(BlockName)
+        local blockname = self.Config.contraband[i]
+        self.datablocks[blockname] = rust.GetDatablockByName(blockname)
     end
 end
 
@@ -75,10 +79,10 @@ function PLUGIN:ContrabandProcess(targetuser, action)
     local inv = rust.GetInventory(targetuser)
     local detected = false
 
-    -- Check inventory against contraband list
+    -- Check inventory against banned item list
     for i=1, #self.Config.contraband do
-        datablock = self.DataBlocks[self.Config.contraband[i]]
-        item = inv:FindItem(datablock)
+        local datablock = self.datablocks[self.Config.contraband[i]]
+        local item = inv:FindItem(datablock)
 
         -- Check if items exist
         if (item) then
@@ -94,6 +98,21 @@ function PLUGIN:ContrabandProcess(targetuser, action)
             end
         end
     end
+
+    if (detected) then
+        -- Check if chat messages are enabled
+        if (self.Config.chatenabled == true) then
+            -- Check for localized strings
+            if (localization == nil) then
+                -- Write removal to server log
+                print("Contraband found and removed from " .. util.QuoteSafe(targetuser.displayName) .. "!")
+            else
+                -- Write removal to server log (localized)
+                print(localization:GetUserString(targetuser, "contraband", "removed_from") .. " " .. util.QuoteSafe(targetuser.displayName) .. "!")
+            end
+        end
+    end
+
     return detected
 end
 
@@ -297,10 +316,18 @@ function PLUGIN:LoadConfiguration()
         -- Log that the default configuration has loaded
         print(self.Title .. " default configuration loaded!")
     end
+
+    -- Check for newer configuration
+    if (self.Config.configversion ~= self.ConfigVersion) then
+        print(self.Title .. " configuration is outdated! Creating new file; be sure to update the settings!")
+        self:DefaultConfiguration()
+        config.Save("contraband")
+    end
 end
 
 function PLUGIN:DefaultConfiguration()
     -- Set default configuration settings
+    self.Config.configversion = self.ConfigVersion
     self.Config.chatname = "Contraband"
     self.Config.chatenabled = true
     self.Config.noticesenabled = true
@@ -316,8 +343,8 @@ function PLUGIN:SetupPermissions()
         -- Add Oxmin plugin command flags
         self.FLAG_CONTRABANDCHECK = oxmin.AddFlag("contrabandcheck")
         self.FLAG_CONTRABANREMOVE = oxmin.AddFlag("contrabandremove")
-        self.oxminPlugin:AddExternalOxminChatCommand(self, "contrabandcheck", { FLAG_CONTRABANDCHECK }, self.cmdContraband)
-        self.oxminPlugin:AddExternalOxminChatCommand(self, "contrabandcheck", { FLAG_CONTRABANREMOVE }, self.cmdContraband)
+        self.oxminPlugin:AddExternalOxminChatCommand(self, "contrabandcheck", { self.FLAG_CONTRABANDCHECK }, self.cmdContraband)
+        self.oxminPlugin:AddExternalOxminChatCommand(self, "contrabandcheck", { self.FLAG_CONTRABANREMOVE }, self.cmdContraband)
     end
 
     -- Find optional Flags plugin
@@ -448,4 +475,26 @@ function PLUGIN:DefaultLocalization()
     localization:AddString("contraband", "sv", "removed", "Smuggelgods hittas och tas bort")
     localization:AddString("contraband", "sv", "removed_from", "Hittade och tog bort smuggelgods från")
     localization:AddString("contraband", "sv", "unknown_action", "Okänd contraband åtgärder")
+end
+
+function PLUGIN:GetLatestVersion()
+    -- Get latest version from URL
+    webrequest.Send("https://raw2.github.com/Wulfspider/OxidePlugins/master/versions/contraband.txt", function(code, response)
+        self:UpdateCheck(code, response)
+    end)
+end
+
+function PLUGIN:UpdateCheck(code, response)
+    local pattern = "%d%.%d+" -- Ex. 0.1.0 or 0.2
+    local compare = string.find(response, pattern) -- Compare response to version pattern
+
+    -- Check for valid latest version
+    if (compare ~= nil) then
+        local latest = response
+        -- Check if new version is available
+        if (self.Version < latest) then
+            -- Report update available to server log
+            print(self.Title .. " is outdated! Installed version: " .. self.Version .. ", Latest version: " .. latest)
+        end
+    end
 end
