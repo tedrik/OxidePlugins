@@ -1,10 +1,10 @@
 PLUGIN.Title = "Anti-Rock"
-PLUGIN.Version = "0.1.1"
+PLUGIN.Version = "0.1.2"
 PLUGIN.ConfigVersion = "0.1.0"
 PLUGIN.Description = "Removes the starter rock from player's inventory/hotbar on connect."
 PLUGIN.Author = "Luke Spragg - Wulfspider"
-PLUGIN.Credits = "shadowdemonx9 (Rock Removal plugin)"
-PLUGIN.Url = ""
+PLUGIN.Credits = "Shadowdemonx9 (Rock Removal plugin)"
+PLUGIN.Url = "http://forum.rustoxide.com/resources/260/"
 
 function PLUGIN:Init()
     -- Log that plugin is loading
@@ -14,7 +14,7 @@ function PLUGIN:Init()
     self:LoadConfiguration()
 
     -- Run update check
-    self:GetLatestVersion()
+    self:UpdateCheck()
 
     -- Log that plugin has loaded
     print(self.Title .. " v" .. self.Version .. " loaded!")
@@ -49,8 +49,9 @@ function PLUGIN:RemoveRock(netuser)
         end
     end
 
+    print(betteritem)
     -- Remove rock if better item found
-    if (betteritem) then
+    if (betteritem ~= false) then
         while (rock) do
             inv:RemoveItem(rock)
             rock = inv:FindItem(rockblock)
@@ -95,24 +96,28 @@ function PLUGIN:DefaultConfiguration()
     self.Config.betteritems = { "Hatchet", "Pick Axe", "Stone Hatchet" }
 end
 
-function PLUGIN:GetLatestVersion()
+function PLUGIN:UpdateCheck()
     -- Get latest version from URL
-    webrequest.Send("https://raw2.github.com/Wulfspider/OxidePlugins/master/versions/antirock.txt", function(code, response)
-        self:UpdateCheck(code, response)
-    end)
-end
+    local url = "https://raw.github.com/Wulfspider/OxidePlugins/master/versions/antirock.txt"
+    local request = webrequest.Send(url, function(code, response)
+        if (code == 200) then
+            -- Version pattern match and compare
+            local pattern = "%d%.%d+" -- Ex. 0.1.0 or 0.2
+            local compare = string.find(response, pattern) -- Compare response to version pattern
 
-function PLUGIN:UpdateCheck(code, response)
-    local pattern = "%d%.%d+" -- Ex. 0.1.0 or 0.2
-    local compare = string.find(response, pattern) -- Compare response to version pattern
-
-    -- Check for valid latest version
-    if (compare ~= nil) then
-        local latest = response
-        -- Check if new version is available
-        if (self.Version < latest) then
-            -- Report update available to server log
-            print(self.Title .. " is outdated! Installed version: " .. self.Version .. ", Latest version: " .. latest)
+            -- Check for valid latest version
+            if (compare ~= nil) then
+                -- Check if new version is available
+                if (self.Version < response) then
+                    -- Report update available to server log
+                    print(self.Title .. " is outdated! Installed version: " .. self.Version .. ", Latest version: " .. response)
+                end
+            end
+        else
+            print(self.Title .. " update check failed!")
         end
+    end)
+    if (not request) then 
+        print(self.Title .. " update check failed!")
     end
 end
